@@ -1,0 +1,96 @@
+blueprint:
+  name: Notify person zone change
+  description: Send a notification when a person changes its zone
+  domain: automation
+  author: Andrei-Rareș Bãlãșescu
+  input:
+    tracked_persons:
+      name: Tracked persons
+      description: Multiple persons for which to track zone change.
+      selector:
+        entity:
+          filter:
+            domain:
+              - person
+          multiple: true
+    notify_devices:
+      name: Device to notify
+      description: The device which will receive the notification.
+      default: []
+      selector:
+        device:
+          filter:
+            - integration: mobile_app
+          multiple: true
+    notify_scripts:
+      name: Notify Script
+      description: ❗ Select a notification script based on the notify_device blueprint
+      default: []
+      selector:
+        entity:
+          filter:
+            - domain:
+                - script
+          multiple: true
+triggers:
+  - trigger: state
+    entity_id: !input tracked_persons
+    from:
+    to:
+condition:
+  - condition: template
+    value_template: "{{ trigger.to_state.state != trigger.from_state.state }}"
+variables:
+  notification_sound: "tweet_sent.caf"
+  notify_scripts: !input notify_scripts
+  notify_devices: !input notify_devices
+  notify_tag: "ha_start"
+action:
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: '{{ trigger.to_state.state == "not_home" }}'
+        sequence:
+          - repeat:
+              for_each: "{{ notify_scripts }}"
+              sequence:
+                - action: "{{ repeat.item }}"
+                  data:
+                    importance: normal
+                    title: "{{ trigger.to_state.attributes.friendly_name }} zone change"
+                    message: "{{ trigger.to_state.attributes.friendly_name }} left from {{trigger.from_state.state}}."
+                    tag: "person_zone_change_{{trigger.to_state.attributes.user_id}}"
+                    sound_name: "{{ notification_sound }}"
+          - repeat:
+              for_each: "{{ notify_devices }}"
+              sequence:
+                - action: notify.mobile_app_{{ device_attr(repeat.item, "name") | slugify }}
+                  data:
+                    title: "{{ trigger.to_state.attributes.friendly_name }} zone change"
+                    message: "{{ trigger.to_state.attributes.friendly_name }} left from {{trigger.from_state.state}}."
+                    target: "{{ repeat.item }}"
+                    tag: "person_zone_change_{{trigger.to_state.attributes.user_id}}"
+      - conditions:
+          - condition: template
+            value_template: '{{ trigger.to_state.state != "not_home" }}'
+        sequence:
+          - repeat:
+              for_each: "{{ notify_scripts }}"
+              sequence:
+                - action: "{{ repeat.item }}"
+                  data:
+                    importance: normal
+                    title: "{{ trigger.to_state.attributes.friendly_name }} zone change"
+                    message: "{{ trigger.to_state.attributes.friendly_name }} arrived at {{trigger.to_state.state}}."
+                    tag: "person_zone_change_{{trigger.to_state.attributes.user_id}}"
+                    sound_name: "{{ notification_sound }}"
+          - repeat:
+              for_each: "{{ notify_devices }}"
+              sequence:
+                - action: notify.mobile_app_{{ device_attr(repeat.item, "name") | slugify }}
+                  data:
+                    title: "{{ trigger.to_state.attributes.friendly_name }} zone change"
+                    message: "{{ trigger.to_state.attributes.friendly_name }} arrived at {{trigger.to_state.state}}."
+                    target: "{{ repeat.item }}"
+                    tag: "person_zone_change_{{trigger.to_state.attributes.user_id}}"
+mode: single
