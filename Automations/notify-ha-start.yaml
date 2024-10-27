@@ -1,0 +1,67 @@
+blueprint:
+  name: Home Assistant start notification
+  description: Send a notification when Home Assistant started.
+  domain: automation
+  author: Andrei-Rareș Bãlãșescu
+  input:
+    notification_title:
+      name: Notification title
+      description: The title of the notification.
+      default: Home Assistant stated 🥳
+    notification_message:
+      name: Notification message
+      description: The message of the notification.
+      default: Home Assistant is now running! 💪
+    notification_sound:
+      name: Notification Sound
+      default:
+      description: Sound to play with the notification
+    notify_devices:
+      name: Device to notify
+      description: The device which will receive the notification.
+      default: []
+      selector:
+        device:
+          filter:
+            - integration: mobile_app
+          multiple: true
+    notify_scripts:
+      name: Notify Script
+      description: ❗ Select a notification script based on the notify_device blueprint
+      default: []
+      selector:
+        entity:
+          filter:
+            - domain:
+                - script
+          multiple: true
+triggers:
+  trigger: homeassistant
+  event: start
+variables:
+  notification_title: !input notification_title
+  notification_message: !input notification_message
+  notification_sound: !input notification_sound
+  notify_scripts: !input notify_scripts
+  notify_devices: !input notify_devices
+  notify_tag: "ha_start"
+actions:
+  - repeat:
+      for_each: "{{ notify_devices }}"
+      sequence:
+        - action: notify.mobile_app_{{ device_attr(repeat.item, "name") | slugify }}
+          data:
+            title: "{{ notification_title }}"
+            message: "{{ notification_message }}"
+            target: "{{ repeat.item }}"
+            tag: "{{ notify_tag }}"
+  - repeat:
+      for_each: "{{ notify_scripts }}"
+      sequence:
+        - action: "{{ repeat.item }}"
+          data:
+            importance: normal
+            title: "{{ notification_title }}"
+            message: "{{ notification_message }}"
+            tag: "{{ notify_tag }}"
+            sound_name: "{{ notification_sound }}"
