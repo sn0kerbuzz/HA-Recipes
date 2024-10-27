@@ -1,0 +1,106 @@
+blueprint:
+  name: Send a notification to a device
+  description: Send a notification to the specified device.
+  domain: script
+  author: Andrei-Rareș Bãlãșescu
+  input:
+    notify_device:
+      name: Notify device
+      description: The device which will receive the notification.
+      selector:
+        device:
+          filter:
+            - integration: mobile_app
+          multiple: false
+    title_prefix:
+      name: Title prefix
+      description: >
+        The prefix to be used in front of the title.
+        Useful if you have multiple Home Assistant instances and you want to differentiate between them.
+      default:
+      selector:
+        text: {}
+fields:
+  importance:
+    name: Importance
+    description: The importance of the notification.
+    required: true
+    default: normal
+    selector:
+      select:
+        options:
+          - normal
+          - info
+          - warning
+          - critical
+  title:
+    name: Title
+    description: The title of the notification.
+    required: true
+    default: Sample title
+    selector:
+      text:
+  message:
+    name: Message
+    description: The message of the notification.
+    required: true
+    default: Sample message
+    selector:
+      text:
+  tag:
+    name: Tag
+    description: The tag for the notification. Useful if you want to replace old notifications with new ones with the same tag.
+    required: true
+    default: sample_tag
+    selector:
+      text:
+  sound_name:
+    name: Sound name
+    description: >
+      The sound name to be used for the notification.
+      Note that this is ignored for when importance is `critical`.
+      You can find the sound name in the companion app.
+    selector:
+      text:
+variables:
+  title_prefix: !input title_prefix
+  computed_title_prefix: >
+    {%- if title_prefix -%}
+      {{ title_prefix }}{{ ' ' }}
+    {%- endif -%}
+  computed_title_icon: >
+    {{ computed_title_prefix }}
+    {%- if importance == 'info' -%}
+      ℹ️
+    {%- elif importance == 'warning' -%}
+      ⚠️
+    {%- elif importance == 'critical' -%}
+      ❗
+    {%- endif -%}
+  computed_sound_name: >
+    {%- if importance == 'critical' -%}
+      default
+    {%- elif sound_name is defined and sound_name -%}
+      {{ sound_name}}
+    {%- else -%}
+      default
+    {%- endif -%}"
+  computed_critical: >
+    {%- if importance == 'critical' -%}
+      1
+    {%- endif -%}
+sequence:
+  - device_id: !input notify_device
+    domain: mobile_app
+    type: notify
+    message: "{{ message }}"
+    title: "{{ computed_title_icon }} {{ title }}"
+    data:
+      tag: "{{ tag }}"
+      push:
+        sound:
+          name: "{{ computed_sound_name }}"
+          critical: "{{ computed_critical }}"
+          volume: 1
+mode: single
+icon: mdi:bell
