@@ -1,0 +1,77 @@
+blueprint:
+  name: Notify finished running
+  description: Send a notification when a running binary sensor finishes.
+  domain: automation
+  author: Andrei-Rareș Bãlãșescu
+  input:
+    sensor:
+      name: The binary sensor
+      description: The binary sensor used to track the running state.
+      selector:
+        entity:
+          filter:
+            domain: binary_sensor
+            device_class: running
+    state_confirmation_duration:
+      name: State confirmation duration
+      description: How much time the state sensor needs to be off until it is considered off.
+      default:
+        hours: 0
+        minutes: 1
+        seconds: 0
+      selector:
+        duration:
+    notification_title:
+      name: Notification title
+      description: The title of the notification.
+      default: "Process finished running! 🥳"
+    notification_message:
+      name: Notification message
+      description: The message of the notification.
+      default: "Your process finished running."
+    notification_sound:
+      name: Notification Sound
+      default:
+      description: Sound to play with the notification.
+    notify_devices:
+      name: Device to notify
+      description: The device which will receive the notification.
+      default: []
+      selector:
+        device:
+          filter:
+            - integration: mobile_app
+          multiple: true
+    notify_scripts:
+      name: Notification Script
+      description: ❗ Select a notification script based on the notify_device blueprint
+      selector:
+        entity:
+          filter:
+            domain: script
+          multiple: true
+variables:
+  state_confirmation_duration: !input state_confirmation_duration
+  notification_title: !input notification_title
+  notification_message: !input notification_message
+  notification_sound: !input notification_sound
+  notify_scripts: !input notify_scripts
+  notify_devices: !input notify_devices
+  notify_tag: "washing_machine"
+triggers:
+  - trigger: state
+    entity_id: !input sensor
+    from: "on"
+    to: "off"
+    for: "{{ state_confirmation_duration }}"
+action:
+  - repeat:
+      for_each: "{{ notify_scripts }}"
+      sequence:
+        - action: "{{ repeat.item }}"
+          data:
+            importance: normal
+            title: "{{ notification_title }}"
+            message: "{{ notification_message }}"
+            tag: "{{ notify_tag }}"
+            sound_name: "{{ notification_sound }}"
