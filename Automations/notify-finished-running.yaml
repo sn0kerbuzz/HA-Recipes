@@ -33,6 +33,10 @@ blueprint:
       name: Notification Sound
       default:
       description: Sound to play with the notification.
+    notification_tag:
+      name: Notification tag
+      default: tag
+      description: The tag to be used for the notification.
     notify_devices:
       name: Device to notify
       description: The device which will receive the notification.
@@ -56,7 +60,7 @@ variables:
   notification_sound: !input notification_sound
   notify_scripts: !input notify_scripts
   notify_devices: !input notify_devices
-  notify_tag: "washing_machine"
+  notify_tag: !input notification_tag
 triggers:
   - trigger: state
     entity_id: !input sensor
