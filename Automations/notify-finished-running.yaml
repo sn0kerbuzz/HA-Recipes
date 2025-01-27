@@ -51,7 +51,6 @@ blueprint:
             domain: script
           multiple: true
 variables:
-  state_confirmation_duration: !input state_confirmation_duration
   notification_title: !input notification_title
   notification_message: !input notification_message
   notification_sound: !input notification_sound
@@ -63,7 +62,7 @@ triggers:
     entity_id: !input sensor
     from: "on"
     to: "off"
-    for: "{{ state_confirmation_duration }}"
+    for: !input state_confirmation_duration
 action:
   - repeat:
       for_each: "{{ notify_scripts }}"
