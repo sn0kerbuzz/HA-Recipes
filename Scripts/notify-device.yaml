@@ -84,7 +84,7 @@ variables:
       {{ sound_name}}
     {%- else -%}
       default
-    {%- endif -%}"
+    {%- endif -%}
   computed_critical: >
     {%- if importance == 'critical' -%}
       1
